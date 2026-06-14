@@ -1,11 +1,11 @@
-# NaoQi_SDK_bridge
+# NaoQi_SDK_Bridge
 
 把 NAOqi（只支持 Python 2.7）和 LLM/VLM 等 Python 3 代码连接起来的最小桥接层。
 
 ## 目录结构
 
 ```
-NaoQi_SDK_bridge/
+NaoQi_SDK_Bridge/
 ├── nao_bridge/              # Python 包：JSON-RPC 协议、server、client、各服务封装
 │   ├── protocol.py
 │   ├── server.py            # 跑在 naoqi(py2.7) 环境
@@ -54,7 +54,7 @@ NaoQi_SDK_bridge/
 无需真机，用 mock 模式先验证链路：
 
 ```bash
-cd NaoQi_SDK_bridge
+cd NaoQi_SDK_Bridge
 ./run_server.sh --mock
 ```
 
@@ -80,7 +80,7 @@ cd NaoQi_SDK_bridge
 
 ```python
 import sys
-sys.path.insert(0, "/path/to/NaoQi_SDK_bridge")  # 仓库根目录，让 `nao_bridge` 包可被 import
+sys.path.insert(0, "/path/to/NaoQi_SDK_Bridge")  # 仓库根目录，让 `nao_bridge` 包可被 import
 
 from nao_bridge.client import NaoBridgeClient
 
