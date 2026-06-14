@@ -44,6 +44,31 @@ _REQUIRED_PROXIES = ["ALMotion", "ALRobotPosture", "ALTextToSpeech"]
 # Proxies that enable extra functionality but aren't strictly required.
 _OPTIONAL_PROXIES = ["ALAnimatedSpeech", "ALSpeechRecognition", "ALMemory"]
 
+try:
+    _TEXT_TYPE = unicode  # noqa: F821 (py2 only)
+except NameError:
+    _TEXT_TYPE = None
+
+
+def _to_native_strings(obj):
+    """Recursively convert `unicode` -> `str` (UTF-8 bytes).
+
+    json.loads() always returns `unicode` for strings (and dict keys) under
+    Python 2.7, but the NAOqi Boost.Python bindings only accept `str` for
+    ALValue String arguments - a `unicode` value is silently converted to
+    ALValue Void instead, e.g. ALRobotPosture.goToPosture(u"StandInit", 0.5)
+    fails with "conversion failure from Void to String". No-op on Python 3.
+    """
+    if _TEXT_TYPE is None:
+        return obj
+    if isinstance(obj, dict):
+        return dict((_to_native_strings(k), _to_native_strings(v)) for k, v in obj.items())
+    if isinstance(obj, list):
+        return [_to_native_strings(v) for v in obj]
+    if isinstance(obj, _TEXT_TYPE):
+        return obj.encode("utf-8")
+    return obj
+
 
 def build_registry(args):
     if args.mock:
@@ -120,7 +145,7 @@ class BridgeServer(socketserver.ThreadingTCPServer):
 
         try:
             with _DISPATCH_LOCK:
-                result = func(**params)
+                result = func(**_to_native_strings(params))
         except TypeError as exc:
             return {"id": request_id, "ok": False, "error": "bad arguments for {0}: {1}".format(method, exc)}
         except Exception as exc:
