@@ -1,34 +1,37 @@
 # NaoQi_SDK_Bridge
 
-把 NAOqi（只支持 Python 2.7）和 LLM/VLM 等 Python 3 代码连接起来的最小桥接层。
+**Languages:** English | [中文](README.zh-CN.md)
 
-## 目录结构
+A minimal bridge that connects NAOqi (Python 2.7 only) with Python 3 code
+such as LLM/VLM agents.
+
+## Directory Structure
 
 ```
 NaoQi_SDK_Bridge/
-├── nao_bridge/              # Python 包：JSON-RPC 协议、server、client、各服务封装
+├── nao_bridge/              # Python package: JSON-RPC protocol, server, client, service wrappers
 │   ├── protocol.py
-│   ├── server.py            # 跑在 naoqi(py2.7) 环境
-│   ├── client.py            # 纯标准库 py3 客户端 NaoBridgeClient
+│   ├── server.py            # runs in the naoqi (py2.7) env
+│   ├── client.py            # stdlib-only py3 client: NaoBridgeClient
 │   └── services/
 │       ├── motion.py        # ALMotion / ALRobotPosture
 │       ├── speech.py        # ALTextToSpeech / ALAnimatedSpeech / ALSpeechRecognition
 │       └── system_service.py
 ├── examples/
-│   └── llm_agent_demo.py     # py3 示例，含 LLM tool/function-calling schema
-├── run_server.sh             # 一键 conda activate naoqi + 设置 PYTHONPATH + 启动 server
+│   └── llm_agent_demo.py     # py3 example, including an LLM tool/function-calling schema
+├── run_server.sh             # conda activate naoqi + set PYTHONPATH + start the server
 └── README.md
 ```
 
-## 架构
+## Architecture
 
 ```
 +-----------------------------+        TCP / JSON-RPC        +----------------------------------+
-| naoqi conda env (Python 2.7)|  <------------------------>  | 任意 Python 3 环境 (如 python312) |
+| naoqi conda env (Python 2.7)|  <------------------------>  | Any Python 3 environment (e.g. python312) |
 |                              |   127.0.0.1:5050 (default)   |                                  |
 |  nao_bridge/server.py        |                              |  nao_bridge/client.py            |
 |  - ALMotion / ALRobotPosture |                              |  - NaoBridgeClient                |
-|  - ALTextToSpeech            |                              |  - LLM / VLM agent 逻辑           |
+|  - ALTextToSpeech            |                              |  - LLM / VLM agent logic          |
 |  - ALAnimatedSpeech          |                              |                                  |
 |  - ALSpeechRecognition       |                              |                                  |
 |  - ALMemory                  |                              |                                  |
@@ -36,51 +39,56 @@ NaoQi_SDK_Bridge/
         |
         | NAOqi SDK (ALProxy)
         v
-   NAO 机器人 (192.168.x.x:9559)
+   NAO robot (192.168.x.x:9559)
 ```
 
-- **server.py** 跑在 `naoqi`（Python 2.7）环境里，加载 NAOqi SDK，把 `ALMotion` /
-  `ALRobotPosture` / `ALTextToSpeech` / `ALAnimatedSpeech` / `ALSpeechRecognition` /
-  `ALMemory` 封装成几个"服务对象"，通过本地 TCP socket 提供 JSON-RPC 接口。
-- **client.py** 是纯标准库的 Python 3 模块（无 NAOqi 依赖），LLM/VLM agent 进程
-  import 它来发指令，例如 `nao.motion.go_to_posture(posture_name="StandInit")`。
-- 两端只用 Python 2.7 / 3 都自带的 `socket` + `json`，没有额外依赖（不需要
-  Flask/ZeroMQ/gRPC）。
+- **server.py** runs inside the `naoqi` (Python 2.7) environment, loads the
+  NAOqi SDK, and wraps `ALMotion` / `ALRobotPosture` / `ALTextToSpeech` /
+  `ALAnimatedSpeech` / `ALSpeechRecognition` / `ALMemory` into a few "service
+  objects", exposed over a local TCP socket as JSON-RPC.
+- **client.py** is a stdlib-only Python 3 module (no NAOqi dependency). An
+  LLM/VLM agent process imports it to send commands, e.g.
+  `nao.motion.go_to_posture(posture_name="StandInit")`.
+- Both sides only use `socket` + `json` from the Python 2.7 / 3 standard
+  library - no extra dependencies (no Flask/ZeroMQ/gRPC needed).
 
-## 快速开始
+## Quick Start
 
-### 1. 启动桥接 server（在 naoqi / py2.7 环境里）
+### 1. Start the bridge server (in the naoqi / py2.7 env)
 
-无需真机，用 mock 模式先验证链路：
+No robot needed - verify the link with mock mode first:
 
 ```bash
 cd NaoQi_SDK_Bridge
 ./run_server.sh --mock
 ```
 
-连接真机：
+Connect to a real robot:
 
 ```bash
 ./run_server.sh --nao-ip 192.168.1.101 --nao-port 9559
 ```
 
-`run_server.sh` 会自动：
-- 把 NAOqi SDK 的 Python 绑定（`naoqi` / `_inaoqi.so` / `qi` 所在目录，默认
-  `/home/sgzg/Naoqi_SDK/lib/python2.7/site-packages`，可用环境变量
-  `NAOQI_SDK_PYTHONPATH` 覆盖）加到 `PYTHONPATH`；
-- `conda activate naoqi`（conda 根目录、env 名也可分别用 `CONDA_ROOT` /
-  `NAOQI_CONDA_ENV` 覆盖）；
-- 运行 `nao_bridge/server.py`。
+`run_server.sh` automatically:
+- Adds the NAOqi SDK's Python bindings directory (where `naoqi` /
+  `_inaoqi.so` / `qi` live; defaults to
+  `/home/sgzg/Naoqi_SDK/lib/python2.7/site-packages`, override with the
+  `NAOQI_SDK_PYTHONPATH` env var) to `PYTHONPATH`;
+- Runs `conda activate naoqi` (the conda root and env name can be overridden
+  with `CONDA_ROOT` / `NAOQI_CONDA_ENV`);
+- Runs `nao_bridge/server.py`.
 
-默认监听 `127.0.0.1:5050`，**只绑定本机**。如果 LLM/VLM 进程跑在另一台机器上，
-不要直接把 `--host` 改成 `0.0.0.0` 暴露到网络上——优先用 SSH 隧道
-（`ssh -L 5050:127.0.0.1:5050 ...`），因为这个协议目前没有鉴权。
+By default it listens on `127.0.0.1:5050`, **bound to localhost only**. If
+your LLM/VLM process runs on another machine, don't just change `--host` to
+`0.0.0.0` and expose it on the network - use an SSH tunnel instead
+(`ssh -L 5050:127.0.0.1:5050 ...`), since this protocol currently has no
+authentication.
 
-### 2. 从 Python 3 调用（在任意 py3 环境，如 python312）
+### 2. Call it from Python 3 (any py3 env, e.g. `python312`)
 
 ```python
 import sys
-sys.path.insert(0, "/path/to/NaoQi_SDK_Bridge")  # 仓库根目录，让 `nao_bridge` 包可被 import
+sys.path.insert(0, "/path/to/NaoQi_SDK_Bridge")  # repo root, so `nao_bridge` can be imported
 
 from nao_bridge.client import NaoBridgeClient
 
@@ -88,85 +96,95 @@ nao = NaoBridgeClient(host="127.0.0.1", port=5050)
 
 nao.motion.wake_up()
 nao.motion.go_to_posture(posture_name="StandInit")
-nao.speech.say(text="你好，我是 NAO")
+nao.speech.say(text="Hello, I am NAO")
 
 angles = nao.motion.get_joint_angles(joints=["HeadYaw", "HeadPitch"])
 print(angles)  # {"joints": [...], "angles_deg": [...]}
 ```
 
-完整可运行示例（含给 LLM 用的 tool/function-calling schema）：
-`examples/llm_agent_demo.py`，用法见文件头注释。
+A complete, runnable example (including an LLM tool/function-calling schema)
+lives at `examples/llm_agent_demo.py` - see the docstring at the top of that
+file for usage.
 
-## RPC 方法一览
+## RPC Method Overview
 
-调用方式都是 `client.<namespace>.<method>(**kwargs)`，对应 server 端
-`registry[namespace].<method>(**kwargs)`。可以用 `client.system.list_methods()`
-在线查询当前都有哪些方法。
+All calls follow `client.<namespace>.<method>(**kwargs)`, which maps to
+`registry[namespace].<method>(**kwargs)` on the server. Use
+`client.system.list_methods()` to discover what's available at runtime.
 
-### `motion.*`（ALMotion / ALRobotPosture，角度单位为**度**）
+### `motion.*` (ALMotion / ALRobotPosture, angles in **degrees**)
 
-| 方法 | 说明 |
+| Method | Description |
 | --- | --- |
-| `wake_up()` | 上电、进入可控状态 |
-| `rest()` | 进入休息姿态、放松关节 |
-| `is_awake()` | 是否已唤醒 |
-| `get_posture()` | 当前姿态族（如 "Standing"） |
-| `go_to_posture(posture_name, speed=0.5)` | 切换到预设姿态（"StandInit"/"Sit"/...） |
-| `list_joints(chain="Body")` | 列出某条链上的关节名 |
-| `get_joint_angles(joints="Body", use_sensors=True)` | 读取关节角度（度） |
-| `set_joint_angles(joints, angles_deg, speed=0.1)` | 非阻塞，按比例速度移动到目标角度 |
-| `move_joints(joints, angles_deg, durations_sec, absolute=True)` | 阻塞式插值运动（`ALMotion.angleInterpolation`），可传多个航点 |
-| `set_stiffness(joints, value)` | 设置关节硬度 0~1 |
-| `walk_to(x, y, theta=0.0)` | 相对位移行走 |
-| `stop_walk()` | 停止行走 |
+| `wake_up()` | Power on / enter controllable state |
+| `rest()` | Enter resting posture, relax joints |
+| `is_awake()` | Whether the robot is awake |
+| `get_posture()` | Current posture family (e.g. "Standing") |
+| `go_to_posture(posture_name, speed=0.5)` | Switch to a named posture ("StandInit"/"Sit"/...) |
+| `list_joints(chain="Body")` | List joint names for a chain |
+| `get_joint_angles(joints="Body", use_sensors=True)` | Read joint angles (degrees) |
+| `set_joint_angles(joints, angles_deg, speed=0.1)` | Non-blocking move toward target angles at a fraction of max speed |
+| `move_joints(joints, angles_deg, durations_sec, absolute=True)` | Blocking interpolated motion (`ALMotion.angleInterpolation`); supports multiple waypoints |
+| `set_stiffness(joints, value)` | Set joint stiffness 0~1 |
+| `walk_to(x, y, theta=0.0)` | Relative walk |
+| `stop_walk()` | Stop walking |
 
-### `speech.*`（ALTextToSpeech / ALAnimatedSpeech / ALSpeechRecognition / ALMemory）
+### `speech.*` (ALTextToSpeech / ALAnimatedSpeech / ALSpeechRecognition / ALMemory)
 
-| 方法 | 说明 |
+| Method | Description |
 | --- | --- |
-| `say(text, mode="animated", body_language_mode="contextual")` | 朗读文本；`mode="tts"` 走纯 `ALTextToSpeech` |
-| `set_language(language)` | 同时设置 TTS 和 ASR 语言 |
-| `set_volume(volume)` | 设置 TTS 音量 |
-| `asr_set_vocabulary(words, word_spotting=True)` | 设置语音识别词表 |
-| `asr_subscribe()` / `asr_unsubscribe()` | 开始/停止语音识别 |
-| `asr_get_last_recognized()` | 读取 `ALMemory` 里最近识别到的词和置信度 |
+| `say(text, mode="animated", body_language_mode="contextual")` | Speak text; `mode="tts"` uses plain `ALTextToSpeech` |
+| `set_language(language)` | Set both TTS and ASR language |
+| `set_volume(volume)` | Set TTS volume |
+| `asr_set_vocabulary(words, word_spotting=True)` | Set the speech recognition vocabulary |
+| `asr_subscribe()` / `asr_unsubscribe()` | Start/stop speech recognition |
+| `asr_get_last_recognized()` | Read the most recently recognized word and confidence from `ALMemory` |
 
-`ALAnimatedSpeech` / `ALSpeechRecognition` / `ALMemory` 是可选代理：如果机器人/SDK
-不提供，对应字段为 `None`；`say()` 会自动降级为 `ALTextToSpeech`，ASR 相关方法
-会抛出明确的错误。
+`ALAnimatedSpeech` / `ALSpeechRecognition` / `ALMemory` are optional proxies:
+if the robot/SDK doesn't provide them, the corresponding field is `None`;
+`say()` automatically falls back to `ALTextToSpeech`, and ASR-related methods
+raise a clear error.
 
 ### `system.*`
 
-| 方法 | 说明 |
+| Method | Description |
 | --- | --- |
-| `ping()` | 连通性检查 |
-| `list_methods()` | 列出 `motion.*` / `speech.*` 当前有哪些方法 |
+| `ping()` | Connectivity check |
+| `list_methods()` | List the currently available `motion.*` / `speech.*` methods |
 
-## Mock 模式
+## Mock Mode
 
-`--mock` 让 server 不连真机、不依赖 NAOqi SDK，用内存里的假 `MotionService` /
-`SpeechService`（`nao_bridge/services/motion.py` / `nao_bridge/services/speech.py`
-里的 `MockMotionService` / `MockSpeechService`）。这让你可以：
+`--mock` runs the server without a robot and without the NAOqi SDK, using
+in-memory fake `MotionService` / `SpeechService` (`MockMotionService` /
+`MockSpeechService` in `nao_bridge/services/motion.py` /
+`nao_bridge/services/speech.py`). This lets you:
 
-- 在没有机器人时开发/调试 LLM/VLM agent 逻辑；
-- 验证 JSON-RPC 链路、参数格式是否正确，再切到真机。
+- Develop/debug the LLM/VLM agent logic without a robot;
+- Verify the JSON-RPC link and parameter shapes before switching to a real
+  robot.
 
-## 扩展指引
+## Extending
 
-- **新增能力（如摄像头/视觉给 VLM 用）**：在 `nao_bridge/services/` 下新建一个模块
-  （例如 `vision.py`），写一个 `VisionService`（包一层 `ALVideoDevice`，
-  比如 `get_frame_jpeg()` 返回 base64 编码的 JPEG）和对应的 `MockVisionService`，
-  然后在 `server.py` 的 `build_registry()` 里注册成 `registry["vision"] = ...`。
-  Python 3 端不用改 `client.py`——`client.vision.get_frame_jpeg()` 会自动可用
-  （`_RemoteNamespace` 是动态分发的）。
-- **新增单个方法**：直接在对应 Service 类上加一个公开方法即可，`server.py`
-  的 dispatcher 通过反射自动暴露它，`client.system.list_methods()` 也会自动列出。
-- **多机器人 / 多 server**：每个 `NaoBridgeClient(host=..., port=...)` 对应一个
-  server 进程，给不同机器人起不同端口即可。
+- **Adding a capability (e.g. camera/vision for a VLM)**: create a new module
+  under `nao_bridge/services/` (e.g. `vision.py`) with a `VisionService`
+  (wrapping `ALVideoDevice`, e.g. `get_frame_jpeg()` returning a base64-encoded
+  JPEG) and a matching `MockVisionService`, then register it as
+  `registry["vision"] = ...` in `build_registry()` in `server.py`. No changes
+  are needed on the Python 3 side - `client.vision.get_frame_jpeg()` works
+  automatically (`_RemoteNamespace` dispatches dynamically).
+- **Adding a single method**: just add a public method to the relevant service
+  class. The dispatcher in `server.py` exposes it automatically via
+  reflection, and `client.system.list_methods()` will list it too.
+- **Multiple robots / multiple servers**: each `NaoBridgeClient(host=...,
+  port=...)` corresponds to one server process - use a different port per
+  robot.
 
-## 已知限制 / 后续可做
+## Known Limitations / Future Work
 
-- 协议没有鉴权，仅适合本机或经 SSH 隧道使用。
-- 每次 RPC 调用都新建一条 TCP 连接（简单、对低频指令足够；如果以后要做
-  高频关节流控制，可以加一个常驻连接 + 流式协议）。
-- 摄像头/视觉（VLM 用）尚未实现，按上面"扩展指引"加 `vision.py` 即可。
+- The protocol has no authentication - only use it locally or over an SSH
+  tunnel.
+- Each RPC call opens a new TCP connection (simple, and fine for low-frequency
+  commands; if high-frequency joint streaming is needed later, a persistent
+  connection + streaming protocol could be added).
+- Camera/vision (for VLM use) is not implemented yet - add `vision.py` as
+  described in "Extending" above.
