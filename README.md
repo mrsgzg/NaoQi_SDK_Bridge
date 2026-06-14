@@ -106,6 +106,25 @@ A complete, runnable example (including an LLM tool/function-calling schema)
 lives at `examples/llm_agent_demo.py` - see the docstring at the top of that
 file for usage.
 
+### 3. Chat with NAO via the DeepSeek API
+
+`examples/llm_agent_demo.py` also includes an interactive chat mode powered
+by the [DeepSeek API](https://api.deepseek.com) (OpenAI-compatible, called
+with `urllib` only - no extra dependencies). Set `DEEPSEEK_API_KEY` and run
+the same script:
+
+```bash
+export DEEPSEEK_API_KEY=sk-...
+python examples/llm_agent_demo.py
+```
+
+Each line you type is sent to DeepSeek together with `NAO_TOOLS`. If the
+model calls a tool (e.g. to change posture or move a joint),
+`dispatch_tool_call()` runs it on NAO and the result is fed back to the
+model; the model's reply is printed and spoken by NAO via
+`client.speech.say()`. Type `exit` to quit. Override the model with
+`DEEPSEEK_MODEL` (default: `deepseek-chat`).
+
 ## RPC Method Overview
 
 All calls follow `client.<namespace>.<method>(**kwargs)`, which maps to

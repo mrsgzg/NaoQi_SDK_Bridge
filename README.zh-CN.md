@@ -102,6 +102,23 @@ print(angles)  # {"joints": [...], "angles_deg": [...]}
 一个完整可运行的示例（包含 LLM 工具/函数调用 schema）位于
 `examples/llm_agent_demo.py`，具体用法见该文件开头的 docstring。
 
+### 3. 通过 DeepSeek API 和 NAO 对话
+
+`examples/llm_agent_demo.py` 还内置了一个由 [DeepSeek API](https://api.deepseek.com)
+驱动的交互式对话模式（OpenAI 兼容接口，仅用 `urllib` 调用，无需额外依赖）。
+设置 `DEEPSEEK_API_KEY` 后运行同一个脚本即可：
+
+```bash
+export DEEPSEEK_API_KEY=sk-...
+python examples/llm_agent_demo.py
+```
+
+你输入的每一行都会和 `NAO_TOOLS` 一起发给 DeepSeek。如果模型调用了某个
+工具（例如切换姿态、移动关节），`dispatch_tool_call()` 会在 NAO 上执行该
+操作并把结果返回给模型；模型的最终回复会被打印出来，并通过
+`client.speech.say()` 由 NAO 朗读出来。输入 `exit` 退出。可通过
+`DEEPSEEK_MODEL` 环境变量覆盖默认模型（默认 `deepseek-chat`）。
+
 ## RPC 方法一览
 
 所有调用遵循 `client.<namespace>.<method>(**kwargs)` 的形式，对应服务端的
